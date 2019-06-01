@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os
 import sys
@@ -6,8 +6,8 @@ import re
 import base64
 import subprocess
 
-import markdown
-import mailparser
+import mailparser  # mail-parser
+import markdown  # Markdown
 import magic  # python-magic (for mimetypes)
 
 
@@ -126,9 +126,8 @@ def format_outlook_reply(message, htmltoinsert):
 # to HTML supporting markdown syntax.
 def plain2fancy(plaintext, msgid):
     # plaintext converted to html, supporting markdown syntax
-    # inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
-    # dunno what safe_mode does (doesn't seem to exist anymore?)
-    text2html = markdown.markdown(plaintext, safe_mode=False)
+    # loosely inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
+    text2html = markdown.markdown(plaintext)
 
     # get message from message id
     message = message_from_msgid(msgid)
@@ -151,18 +150,18 @@ def plain2fancy(plaintext, msgid):
             .format(mimetype, attachment[1], os.path.basename(attachment[1]), attachment[0])
         
     # write html message to file for inspection before sending
-    with open("/dev/shm/mimedown-madness.html", "w") as f:
+    with open("/dev/shm/mimelook-madness.html", "w") as f:
         f.write(madness)
 
     # return the multipart message
-    html = """<#multipart type=alternative>
+    multimsg = """<#multipart type=alternative>
 {}
 <#part type=text/html>
 {}
 <#/multipart>
 {}""".format(plaintext, madness, attachment_str)
 
-    print(html, file=sys.stdout)
+    return multimsg
 
 if __name__ == '__main__':
     stdin = sys.stdin.read()
@@ -172,4 +171,4 @@ if __name__ == '__main__':
     # expecting rest to be plaintext version of the message
     plaintext = stdin[msgid_end_char+1:]
 
-    plain2fancy(plaintext, msgid)
+    print(plain2fancy(plaintext, msgid))
