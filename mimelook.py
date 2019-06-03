@@ -44,7 +44,10 @@ def export_inline_attachments(message, dstdir):
         with open(dstfile, "wb") as f:
             f.write(b)
 
-        ret.append((attachment_id, dstfile))
+        # same attachment might occur multiple times - only add it once
+        att = (attachment_id, dstfile)
+        if att not in ret:
+            ret.append(att)
 
     return ret
 
