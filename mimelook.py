@@ -93,6 +93,9 @@ def message_from_msgid(msgid):
 def format_outlook_reply(message, htmltoinsert):
     message_html = message.body.split("--- mail_boundary ---")[1]
 
+    # convert CRLF to LF
+    message_html = message_html.replace("\r\n", "\n")
+
     # grab header info
     message_from = message.headers["From"]
     message_to = message.headers["To"]
