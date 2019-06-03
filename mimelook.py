@@ -155,9 +155,12 @@ def plain2fancy(plaintext, msgid):
 
     # return the multipart message
     multimsg = """<#multipart type=alternative>
+<#part type=text/plain>
 {}
+<#/part>
 <#part type=text/html>
 {}
+<#/part>
 <#/multipart>
 {}""".format(plaintext, madness, attachment_str)
 
