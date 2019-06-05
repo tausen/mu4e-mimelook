@@ -111,7 +111,7 @@ def format_outlook_reply(message, htmltoinsert):
                                                    message_to, message_cc, message_subject)
 
     # find body tag in html
-    m = re.search("<body.*>", message_html)
+    m = re.search("<body.*?>", message_html)
     assert m is not None, "No body tag found in parent HTML"
 
     # format resulting html email:
