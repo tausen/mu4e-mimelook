@@ -5,6 +5,7 @@ import sys
 import re
 import base64
 import subprocess
+import html
 
 import mailparser  # mail-parser
 import markdown  # Markdown
@@ -132,8 +133,9 @@ def format_outlook_reply(message, htmltoinsert):
 # to HTML supporting markdown syntax.
 def plain2fancy(plaintext, msgid):
     # plaintext converted to html, supporting markdown syntax
+    # escaping html first in case plaintext contains characters such as < and >
     # loosely inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
-    text2html = markdown.markdown(plaintext)
+    text2html = markdown.markdown(html.escape(plaintext))
 
     # get message from message id
     message = message_from_msgid(msgid)
