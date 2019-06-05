@@ -5,11 +5,11 @@
 ;; Not much is going on in lisp: We need a reference to the parent message (the
 ;; message being replied to) so we can forward its ID to mimelook.py. mu4e
 ;; exposes the message being replied to in the variable
-;; mu4e-compose-parent-message in the pre-compose hook, so we grab it, store it
-;; in my/mu4e-parent-message, and then store it in a local variable in the
-;; mu4e-compose-mode-hook.
+;; `mu4e-compose-parent-message' in the pre-compose hook, so we grab it, store it
+;; in `my/mu4e-parent-message', and then store it in a local variable in the
+;; `mu4e-compose-mode-hook'.
 
-;; Before sending, we call my/mu4e-outlook-madness. This will take the current
+;; Before sending, we call `my/mu4e-outlook-madness'. This will take the current
 ;; body text and parent message ID from the buffer and send it to an external
 ;; Python script (mimelook.py). This script then does several things:
 
@@ -29,7 +29,7 @@
 ;; Finally, a multipart message is generated with the structure:
 
 ;; <#multipart type=alternative>
-;;  <<untouched plaintext that was in the buffer before calling my/mu4e-outlook-madness>>
+;;  <<untouched plaintext that was in the buffer before calling `my/mu4e-outlook-madness'>>
 ;; <#part type=text/html>
 ;;  <<everything in the parent message HTML upto and including the <body> tag>>
 ;;  <<the plaintext from our buffer, converted to HTML via Markdown>>
@@ -48,22 +48,29 @@
 
 ;; For debugging, the HTML part is written to /dev/shm/mimelook-madness.html for
 ;; inspection. This file will automatically be opened in a browser if
-;; my/mu4e-outlook-madness is called with a prefix argument. Do note that inline
+;; `my/mu4e-outlook-madness' is called with a prefix argument. Do note that inline
 ;; attachment images are NOT rendered in this preview!
+
+;; If an Outlook user sends us a plaintext email, don't attempt to produce an
+;; HTML reply with `my/mu4e-outlook-madness'. Instead refer to
+;; `my/enable-outlook-reply-style', which will set
+;; `message-citation-line-function' to an Outlook-style (but plaintext) citation
+;; line (will also change yank prefixes). These are bound to C-c C-S-o and C-c
+;; C-o.
 
 ;; [1]: https://daringfireball.net/projects/markdown/
 
 (defun my/mu4e-pre-compose-set-parent-message ()
   "When composing, detect the message being replied to and store
-   it in the global (and thus unsafe to use) variable
-   my/mu4e-parent-message."
+it in the global (and unsafe to use) variable
+`my/mu4e-parent-message'."
   (when (> (length mu4e-compose-parent-message) 0)
     (setq my/mu4e-parent-message mu4e-compose-parent-message)))
 (add-hook 'mu4e-compose-pre-hook 'my/mu4e-pre-compose-set-parent-message)
 
 (defun my/mu4e-post-compose-set-parent-message ()
-  "When composing, use my/mu4e-parent-message to store the parent
-   message in the local variable my/mu4e-local-parent-message."
+  "When composing, use `my/mu4e-parent-message' to store the parent
+message in the local variable `my/mu4e-local-parent-message'."
   (message "my/mu4e-post-compose-set-parent-message")
   (when (> (length mu4e-compose-parent-message) 0)
     (make-local-variable 'my/mu4e-local-parent-message)
@@ -72,9 +79,12 @@
 
 (defun my/mu4e-outlook-madness (x)
   "Convert message in current buffer to a multipart message where
-   the HTML version loosely conforms to the style used by MS
-   outlook. This depends on the external script mimelook.py that has
-   to be in PATH. With prefix argument, open browser for preview."
+the HTML version loosely conforms to the style used by MS
+outlook. This depends on the external script mimelook.py that
+has to be in PATH. With prefix argument, open browser for
+preview.
+
+Not compatible with `my/message-insert-outlook-citation-line'."
   (interactive "P")
   (save-excursion
     (message-goto-body)
@@ -95,7 +105,9 @@
       (signal 'quit nil))))
 
 (defun my/message-insert-outlook-citation-line ()
-  "Based off `message-insert-citation-line`. Inserts outlook (web)-style replies"
+  "Based off `message-insert-citation-line'. Inserts outlook (web)-style replies.
+
+Not compatible with `my/mu4e-outlook-madness'"
   (when message-reply-headers
     (newline)
     (insert "________________________________")
@@ -124,7 +136,8 @@
     (newline)(newline)(newline)))
 
 (defun my/enable-outlook-reply-style ()
-  "Enable Outlook-style replies"
+  "Enable Outlook-style replies. The inverse of
+`my/disable-outlook-reply-style'."
   (interactive)
   (setq message-citation-line-function 'my/message-insert-outlook-citation-line)
   (setq message-yank-prefix "")
@@ -133,7 +146,8 @@
   (message "Enabled Outlook reply style"))
 
 (defun my/disable-outlook-reply-style ()
-  "Disable Outlook-style replies"
+  "Disable Outlook-style replies. The inverse of
+`my/enable-outlook-reply-style'."
   (interactive)
   (setq message-citation-line-function 'message-insert-citation-line)
   (setq message-yank-prefix "> ")
