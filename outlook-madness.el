@@ -93,3 +93,57 @@
   (lambda ()
     (unless (yes-or-no-p "Send mail?")
       (signal 'quit nil))))
+
+(defun my/message-insert-outlook-citation-line ()
+  "Based off `message-insert-citation-line`. Inserts outlook (web)-style replies"
+  (when message-reply-headers
+    (newline)
+    (insert "________________________________")
+    (newline)
+    (insert "From: " (replace-regexp-in-string " <.*>" "" (mail-header-from message-reply-headers)))
+    (newline)
+    (insert "Sent: "
+	    (let ((tstr (parse-time-string
+			 (substring
+			  (replace-regexp-in-string "T" " " (mail-header-date message-reply-headers))
+			  0 -5))))
+	      (format-time-string "%e %b %G %H:%M:%S" (apply 'encode-time tstr))))
+    (newline)
+    (setq value "")
+    (insert "To: " (substring (concat (dolist (elt (mu4e-message-field my/mu4e-parent-message :to) value)
+					(setq value (concat value (car elt) "; "))))
+			      0 -2))
+    (when (> (length (mu4e-message-field my/mu4e-parent-message :cc)) 0)
+      (newline)
+      (setq value "")
+      (insert "Cc: " (substring (concat (dolist (elt (mu4e-message-field my/mu4e-parent-message :cc) value)
+					  (setq value (concat value (car elt) "; "))))
+				0 -2)))
+    (newline)
+    (insert "Subject: " (mail-header-subject message-reply-headers))
+    (newline)(newline)(newline)))
+
+(defun my/enable-outlook-reply-style ()
+  "Enable Outlook-style replies"
+  (interactive)
+  (setq message-citation-line-function 'my/message-insert-outlook-citation-line)
+  (setq message-yank-prefix "")
+  (setq message-yank-empty-prefix "")
+  (setq message-yank-cited-prefix "")
+  (message "Enabled Outlook reply style"))
+
+(defun my/disable-outlook-reply-style ()
+  "Disable Outlook-style replies"
+  (interactive)
+  (setq message-citation-line-function 'message-insert-citation-line)
+  (setq message-yank-prefix "> ")
+  (setq message-yank-empty-prefix ">")
+  (setq message-yank-cited-prefix ">")
+  (message "Disabled Outlook reply style"))
+
+;; hotkeys for enabling/disabling outlook reply styles when in mu4e-view-mode
+(add-hook 'mu4e-view-mode-hook (lambda () (local-set-key (kbd "C-c C-S-o") 'my/enable-outlook-reply-style)))
+(add-hook 'mu4e-view-mode-hook (lambda () (local-set-key (kbd "C-c C-o") 'my/disable-outlook-reply-style)))
+
+;; initially disable outlook plaintext reply style
+(my/disable-outlook-reply-style)
