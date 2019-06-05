@@ -6,7 +6,7 @@
 ;; message being replied to) so we can forward its ID to mimelook.py. mu4e
 ;; exposes the message being replied to in the variable
 ;; mu4e-compose-parent-message in the pre-compose hook, so we grab it, store it
-;; in my/mu4e-parent-message, and then store its ID in a local variable in the
+;; in my/mu4e-parent-message, and then store it in a local variable in the
 ;; mu4e-compose-mode-hook.
 
 ;; Before sending, we call my/mu4e-outlook-madness. This will take the current
@@ -61,14 +61,14 @@
     (setq my/mu4e-parent-message mu4e-compose-parent-message)))
 (add-hook 'mu4e-compose-pre-hook 'my/mu4e-pre-compose-set-parent-message)
 
-(defun my/mu4e-post-compose-set-parent-message-id ()
-  "When composing, use my/mu4e-parent-message to store the id of
-   the parent message in the local variable
-   my/mu4e-parent-message-id."
+(defun my/mu4e-post-compose-set-parent-message ()
+  "When composing, use my/mu4e-parent-message to store the parent
+   message in the local variable my/mu4e-local-parent-message."
+  (message "my/mu4e-post-compose-set-parent-message")
   (when (> (length mu4e-compose-parent-message) 0)
-    (make-local-variable 'my/mu4e-parent-message-id)
-    (setq my/mu4e-parent-message-id (mu4e-message-field my/mu4e-parent-message :message-id))))
-(add-hook 'mu4e-compose-mode-hook 'my/mu4e-post-compose-set-parent-message-id)
+    (make-local-variable 'my/mu4e-local-parent-message)
+    (setq my/mu4e-local-parent-message mu4e-compose-parent-message)))
+(add-hook 'mu4e-compose-mode-hook 'my/mu4e-post-compose-set-parent-message)
 
 (defun my/mu4e-outlook-madness (x)
   "Convert message in current buffer to a multipart message where
@@ -78,7 +78,7 @@
   (interactive "P")
   (save-excursion
     (message-goto-body)
-    (insert my/mu4e-parent-message-id)
+    (insert (mu4e-message-field my/mu4e-local-parent-message :message-id))
     (newline)
     (message-goto-body)
     (shell-command-on-region (point) (point-max) "mimelook.py" nil t)
