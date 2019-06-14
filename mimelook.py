@@ -58,8 +58,10 @@ def format_insane_outlook_header(fromaddr, sent, to, cc, subject):
     ret = """<hr style="display:inline-block;width:98%" tabindex="-1">
 <div id="divRplyFwdMsg" dir="ltr"><font face="Calibri, sans-serif" style="font-size:11pt" color="#000000"><b>From:</b> {}<br>
 <b>Sent:</b> {}<br>
-<b>To:</b> {}<br>
-""".format(fromaddr, sent, to)
+""".format(fromaddr, sent)
+
+    if to is not None:
+        ret += "<b>To:</b> {}<br>\n".format(to)
 
     if cc is not None:
         ret += "<b>Cc:</b> {}<br>\n".format(cc)
@@ -102,7 +104,7 @@ def format_outlook_reply(message, htmltoinsert):
 
     # grab header info
     message_from = message.headers["From"]
-    message_to = message.headers["To"]
+    message_to = message.headers["To"] if "To" in message.headers else None
     message_subject = message.headers["Subject"]
     message_date = message.date.strftime("%d %B %Y %H:%M:%S")
     message_cc = message.headers["CC"] if "CC" in message.headers else None
