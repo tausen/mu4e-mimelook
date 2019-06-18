@@ -5,12 +5,14 @@ import sys
 import re
 import base64
 import subprocess
+import html
 
 import mailparser  # mail-parser
 import markdown  # Markdown
 import magic  # python-magic (for mimetypes)
 
 
+QUOTE_ESCAPE = "MIMELOOK_QUOTES"
 mime = magic.Magic(mime=True)
 
 
@@ -128,15 +130,68 @@ def format_outlook_reply(message, htmltoinsert):
     return html
 
 
+# Convert "> "-style quotes into something else that passes untouched through html.escape()
+# Escaped quotes look like this: [[MIMELOOK_QUOTES|X]] where X denotes the
+# number of quotes that have been escaped
+def escape_quotes(plaintext):
+    ret = ""
+    for line in plaintext.split("\n"):
+        if line.startswith(">"):
+            i = 0
+            while line[i] == ">":
+                i += 1
+            ret += "[[{}|{}]]".format(QUOTE_ESCAPE, i)
+            ret += line[i:] + "\n"
+        else:
+            ret += line + "\n"
+
+    return ret
+
+
+# Convert previously escaped "> "-style quotes back to their original form.
+def unescape_quotes(string):
+    retstr = ""
+    i = 0
+
+    while i < len(string):
+        # find start position of next escaped quote group
+        p = string[i:].find("[[{}|".format(QUOTE_ESCAPE))
+
+        if p < 0:
+            # no more escaped quotes - grab the rest of the string and return
+            retstr += string[i:]
+            break
+
+        # found some escaped quotes, grab content of string upto them
+        retstr += string[i:i+p]
+
+        # find end of the escaped quote tag
+        tag_end_pos = string[i+p:].find("]]")
+
+        # grab the number from the tag
+        nquotes = int(string[i+p+2+len(QUOTE_ESCAPE)+1:i+p+tag_end_pos])
+
+        # append that number of quotes
+        retstr += ">"*nquotes
+
+        # advance to the character just after the tag
+        i += p+tag_end_pos+2
+
+    return retstr
+
+
 # Take desired plaintext message and id of message being replied to
 # and format a multipart message with sane plaintext section and
 # insane outlook-style html section. The plaintext message is converted
 # to HTML supporting markdown syntax.
 def plain2fancy(plaintext, msgid):
-    # plaintext converted to html, supporting markdown syntax
+
+    # escape HTML in the plaintext, handling quoted content explicitly
+    escaped_plaintext = unescape_quotes(html.escape(escape_quotes(plaintext)))
+
+    # plaintext is converted to html, supporting markdown syntax
     # loosely inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
-    # TODO: handle html-tag like content in the plaintext - cannot simply escape all html, since that would break "> "-quoted blocks
-    text2html = markdown.markdown(plaintext)
+    text2html = markdown.markdown(escaped_plaintext)
 
     # get message from message id
     message = message_from_msgid(msgid)
