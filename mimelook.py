@@ -191,11 +191,28 @@ def escape_signature_linebreaks(plaintext):
         return plaintext
 
 
+# Find MIME parts in the plaintext
+# Returns plaintext without parts and list of parts
+# Warning: assumes only valid <#part...><#/part> tags after the first occurence
+# of "<#part" !
+def find_mime_parts(plaintext):
+    parts = re.findall("<#part.*?<#/part>", plaintext, re.DOTALL)
+    m = re.search("<#part.*?<#/part>", plaintext, re.DOTALL)
+    if m is not None:
+        text = plaintext[:m.start()]
+    else:
+        text = plaintext
+    return text, parts
+
+
 # Take desired plaintext message and id of message being replied to
 # and format a multipart message with sane plaintext section and
 # insane outlook-style html section. The plaintext message is converted
 # to HTML supporting markdown syntax.
 def plain2fancy(plaintext, msgid):
+
+    # find and strip MIME parts in the ending of the plaintext
+    plaintext, parts = find_mime_parts(plaintext)
 
     # escape HTML in the plaintext, handling quoted content explicitly
     escaped_plaintext = unescape_quotes(html.escape(escape_quotes(plaintext)))
@@ -228,7 +245,10 @@ def plain2fancy(plaintext, msgid):
         mimetype = mime.from_file(attachment[1])
         attachment_str += "<#part type=\"{}\" filename=\"{}\" disposition=inline id=\"{}@{}\"><#/part>\n"\
             .format(mimetype, attachment[1], os.path.basename(attachment[1]), attachment[0])
-        
+
+    # also include attachments that were already present in the plaintext
+    attachment_str += "\n".join(parts)
+
     # write html message to file for inspection before sending
     with open("/dev/shm/mimelook-madness.html", "w") as f:
         f.write(madness)
