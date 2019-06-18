@@ -180,6 +180,17 @@ def unescape_quotes(string):
     return retstr
 
 
+def escape_signature_linebreaks(plaintext):
+    m = re.search("^-- ", plaintext, re.MULTILINE)
+    if m is not None:
+        content = plaintext[:m.start()]
+        signature = plaintext[m.start():]
+        signature = signature.replace("\n", "  \n")
+        return content + signature
+    else:
+        return plaintext
+
+
 # Take desired plaintext message and id of message being replied to
 # and format a multipart message with sane plaintext section and
 # insane outlook-style html section. The plaintext message is converted
@@ -188,6 +199,11 @@ def plain2fancy(plaintext, msgid):
 
     # escape HTML in the plaintext, handling quoted content explicitly
     escaped_plaintext = unescape_quotes(html.escape(escape_quotes(plaintext)))
+
+    # handle signature - we expect linebreaks to be preserved in the signature,
+    # but let everything else wrap (reminder: Markdown preserves linebreaks if
+    # there's two spaces at the end of a line)
+    escaped_plaintext = escape_signature_linebreaks(escaped_plaintext)
 
     # plaintext is converted to html, supporting markdown syntax
     # loosely inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
