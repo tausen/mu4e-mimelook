@@ -138,7 +138,7 @@ def escape_quotes(plaintext):
     for line in plaintext.split("\n"):
         if line.startswith(">"):
             i = 0
-            while line[i] == ">":
+            while i < len(line) and line[i] == ">":
                 i += 1
             ret += "[[{}|{}]]".format(QUOTE_ESCAPE, i)
             ret += line[i:] + "\n"
