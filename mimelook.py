@@ -35,7 +35,7 @@ def export_inline_attachments(message, dstdir):
 
         # find corresponding attachment in the message
         attachment_name = inline[name_match.start()+4:name_match.end()-1]
-        attachment = [x for x in message.attachments if x["filename"] == attachment_name]
+        attachment = [x for x in message.attachments if x["content-id"].startswith("<{}".format(attachment_name))]
         assert len(attachment) == 1, "Could not get attachment '{}'".format(attachment_name)
         attachment = attachment[0]
 
