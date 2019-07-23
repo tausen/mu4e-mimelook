@@ -6,6 +6,7 @@ import re
 import base64
 import subprocess
 import html
+from html.parser import HTMLParser
 
 import mailparser  # mail-parser
 import markdown  # Markdown
@@ -205,6 +206,20 @@ def find_mime_parts(plaintext):
     return text, parts
 
 
+# Escape HTML. Don't escape lines that start with four spaces, since
+# these will be wrapped by <pre> tags by the Markdown-to-html
+# conversion.
+def html_escape(text):
+    ret = ""
+    for line in text.split("\n"):
+        if not line.startswith("    "):
+            ret += html.escape(line) + "\n"
+        else:
+            ret += line + "\n"
+
+    return ret
+
+
 # Take desired plaintext message and id of message being replied to
 # and format a multipart message with sane plaintext section and
 # insane outlook-style html section. The plaintext message is converted
@@ -215,7 +230,7 @@ def plain2fancy(plaintext, msgid):
     plaintext, parts = find_mime_parts(plaintext)
 
     # escape HTML in the plaintext, handling quoted content explicitly
-    escaped_plaintext = unescape_quotes(html.escape(escape_quotes(plaintext)))
+    escaped_plaintext = unescape_quotes(html_escape(escape_quotes(plaintext)))
 
     # handle signature - we expect linebreaks to be preserved in the signature,
     # but let everything else wrap (reminder: Markdown preserves linebreaks if
