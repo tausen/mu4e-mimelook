@@ -242,24 +242,30 @@ def plain2fancy(plaintext, msgid):
     text2html = markdown.markdown(escaped_plaintext)
 
     # get message from message id
-    message = message_from_msgid(msgid)
+    # print(msgid)
+    if msgid is not None:
+        message = message_from_msgid(msgid)
+        # insane outlook-style html reply
+        madness = format_outlook_reply(message, text2html)
 
-    # insane outlook-style html reply
-    madness = format_outlook_reply(message, text2html)
+        # find inline attachments and export them to a temporary dir
+        attdir = "/dev/shm/mu4e-{}".format(msgid)
+        if not os.path.isdir(attdir):
+            os.mkdir(attdir)
+        attachments = export_inline_attachments(message, attdir)
 
-    # find inline attachments and export them to a temporary dir
-    attdir = "/dev/shm/mu4e-{}".format(msgid)
-    if not os.path.isdir(attdir):
-        os.mkdir(attdir)
-    attachments = export_inline_attachments(message, attdir)
+        # build string of <#part type=x filename=y disposition=inline><#/part> for each
+        # attachment, separated by newlines
+        attachment_str = ""
+        for attachment in attachments:
+            mimetype = mime.from_file(attachment[1])
+            attachment_str += "<#part type=\"{}\" filename=\"{}\" disposition=inline id=\"{}@{}\"><#/part>\n"\
+                .format(mimetype, attachment[1], os.path.basename(attachment[1]), attachment[0])
 
-    # build string of <#part type=x filename=y disposition=inline><#/part> for each
-    # attachment, separated by newlines
-    attachment_str = ""
-    for attachment in attachments:
-        mimetype = mime.from_file(attachment[1])
-        attachment_str += "<#part type=\"{}\" filename=\"{}\" disposition=inline id=\"{}@{}\"><#/part>\n"\
-            .format(mimetype, attachment[1], os.path.basename(attachment[1]), attachment[0])
+    else:
+        msgid = "no-parent"
+        madness = "<html><head></head><body lang=\"EN-US\">{}</body></html>".format(text2html)
+        attachment_str = ""
 
     # also include attachments that were already present in the plaintext
     attachment_str += "\n".join(parts)
@@ -281,12 +287,25 @@ def plain2fancy(plaintext, msgid):
 
     return multimsg
 
-if __name__ == '__main__':
-    stdin = sys.stdin.read()
-    msgid_end_char = stdin.find("\n")
-    # expecting first line to be the message id
-    msgid = stdin[:msgid_end_char]
-    # expecting rest to be plaintext version of the message
-    plaintext = stdin[msgid_end_char+1:]
 
-    print(plain2fancy(plaintext, msgid))
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--no-parent", action="store_true")
+    args = parser.parse_args()
+
+    if not args.no_parent:
+        stdin = sys.stdin.read()
+        msgid_end_char = stdin.find("\n")
+        # expecting first line to be the message id
+        msgid = stdin[:msgid_end_char]
+        # expecting rest to be plaintext version of the message
+        plaintext = stdin[msgid_end_char+1:]
+
+        print(plain2fancy(plaintext, msgid))
+    else:
+        # expecting rest to be plaintext version of the message
+        plaintext = sys.stdin.read()
+
+        print(plain2fancy(plaintext, None))
+
