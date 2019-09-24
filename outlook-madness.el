@@ -104,6 +104,17 @@ Not compatible with `mimelook/message-insert-outlook-citation-line'."
             (unless (yes-or-no-p "Send mail?")
               (signal 'quit nil))))
 
+(defun mimelook/mu4e-outlook-madness-noparent (x)
+  "Convert message in current buffer to a multipart
+plaintext+HTML message."
+  (interactive "P")
+  (save-excursion
+    (message-goto-body)
+    (shell-command-on-region (point) (point-max) "mimelook.py --no-parent" nil t)
+    (when x
+      (message "Opening HTML preview - inline images are NOT rendered!")
+      (browse-url "file:///dev/shm/mimelook-madness.html"))))
+
 (defun mimelook/message-insert-outlook-citation-line ()
   "Based off `message-insert-citation-line'. Inserts outlook (web)-style replies.
 
