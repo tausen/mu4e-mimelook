@@ -99,7 +99,7 @@ def message_from_msgid(msgid):
 
 # create crazy outlook-style html reply from message id and the desired html message
 def format_outlook_reply(message, htmltoinsert):
-    message_html = message.body.split("--- mail_boundary ---")[1]
+    message_html = message.text_html[0]
 
     # convert CRLF to LF
     message_html = message_html.replace("\r\n", "\n")
