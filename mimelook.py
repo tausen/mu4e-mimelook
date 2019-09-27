@@ -29,13 +29,22 @@ def export_inline_attachments(message, dstdir):
     for inline in inlines:
         # find filename
         name_match = re.search("cid:.*@", inline)
+        if name_match is None:
+            name_start = 5
+            name_end = len(inline)
+        else:
+            name_start = name_match.start()
+            name_end = name_match.end()
 
         # find content id
-        id_match = re.search("@.*", inline)
-        attachment_id = inline[id_match.start()+1:-1]
+        if "@" in inline:
+            id_match = re.search("@.*", inline)
+            attachment_id = inline[id_match.start()+1:-1]
+        else:
+            attachment_id = inline[name_start+4:name_end-1]
 
         # find corresponding attachment in the message
-        attachment_name = inline[name_match.start()+4:name_match.end()-1]
+        attachment_name = inline[name_start+4:name_end-1]
         attachment = [x for x in message.attachments if x["content-id"].startswith("<{}".format(attachment_name))]
         assert len(attachment) == 1, "Could not get attachment '{}'".format(attachment_name)
         attachment = attachment[0]
