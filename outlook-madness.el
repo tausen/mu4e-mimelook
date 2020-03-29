@@ -60,10 +60,19 @@
 
 ;; [1]: https://daringfireball.net/projects/markdown/
 
+(defun asdf ()
+  (interactive)
+  (setq asdfasdf mu4e-compose-parent-message)
+  )
+
+
+
 (defun mimelook/mu4e-pre-compose-set-parent-message ()
   "When composing, detect the message being replied to and store
 it in the global (and unsafe to use) variable
 `mimelook/mu4e-parent-message'."
+  ;(message "mimelook/mu4e-pre-compose-set-parent-message")
+  ;(message (elt (mu4e-message-field mu4e-compose-parent-message :to) value))
   (when (> (length mu4e-compose-parent-message) 0)
     (setq mimelook/mu4e-parent-message mu4e-compose-parent-message)))
 (add-hook 'mu4e-compose-pre-hook 'mimelook/mu4e-pre-compose-set-parent-message)
@@ -91,7 +100,7 @@ Not compatible with `mimelook/message-insert-outlook-citation-line'."
     (insert (mu4e-message-field mimelook/mu4e-local-parent-message :message-id))
     (newline)
     (message-goto-body)
-    (shell-command-on-region (point) (point-max) "mimelook.py" nil t)
+    (shell-command-on-region (point) (point-max) "python3.8 ~/git/mu4e-mimelook/mimelook.py" nil t)
     (when x
       (message "Opening HTML preview - inline images are NOT rendered!")
       (browse-url "file:///dev/shm/mimelook-madness.html"))))
@@ -109,8 +118,19 @@ Not compatible with `mimelook/message-insert-outlook-citation-line'."
 plaintext+HTML message."
   (interactive "P")
   (save-excursion
+
+    ;; (message-goto-subject)
+    ;; ;;(error (thing-at-point 'line t))
+    ;; (let ((subject (thing-at-point 'line t)))
+    ;;   (if (< 10 subject)
+    ;; 	(error "no subject")
+    ;; 	))
+    ;; (let ((subject (thing-at-point 'line t)))
+    ;; 	   (if (< 10 (length subject))
+    ;; 	       (error "no subject")))
+
     (message-goto-body)
-    (shell-command-on-region (point) (point-max) "mimelook.py --no-parent" nil t)
+    (shell-command-on-region (point) (point-max) "python3.8 ~/git/mu4e-mimelook/mimelook.py --no-parent" nil t)
     (when x
       (message "Opening HTML preview - inline images are NOT rendered!")
       (browse-url "file:///dev/shm/mimelook-madness.html"))))
@@ -121,9 +141,11 @@ plaintext+HTML message."
 Not compatible with `mimelook/mu4e-outlook-madness'"
   (when message-reply-headers
     (newline)
-    (insert "________________________________")
+    (insert "-----Original Message-----")
     (newline)
-    (insert "From: " (replace-regexp-in-string " <.*>" "" (mail-header-from message-reply-headers)))
+    ;;(insert "From: " (replace-regexp-in-string " <.*>" "" (mail-header-from message-reply-headers)))
+    (princ (mail-header-from message-reply-headers))
+    (insert "From: " (mail-header-from message-reply-headers))
     (newline)
     (insert "Sent: "
 	    (let ((tstr (parse-time-string
@@ -132,16 +154,43 @@ Not compatible with `mimelook/mu4e-outlook-madness'"
 			  0 -5))))
 	      (format-time-string "%e %b %G %H:%M:%S" (apply 'encode-time tstr))))
     (newline)
-    (setq value "")
-    (insert "To: " (substring (concat (dolist (elt (mu4e-message-field mimelook/mu4e-parent-message :to) value)
-					(setq value (concat value (car elt) "; "))))
-			      0 -2))
-    (when (> (length (mu4e-message-field mimelook/mu4e-parent-message :cc)) 0)
-      (newline)
-      (setq value "")
-      (insert "Cc: " (substring (concat (dolist (elt (mu4e-message-field mimelook/mu4e-parent-message :cc) value)
-					  (setq value (concat value (car elt) "; "))))
+    ;; test: first field is name, second is email address - the former is optional!
+    (let ((tmp ""))
+      (insert "To: " (substring (concat (dolist (element (mu4e-message-field mimelook/mu4e-parent-message :to) tmp)
+					  (if (car element) 
+					      (setq tmp (concat tmp (car element) "; "))
+					    (if (cdr element)
+						(setq tmp (concat tmp (cdr element) "; "))
+					      (error "'To' field contains nil/nil")))))
 				0 -2)))
+    
+    ;; (setq value "")
+    ;; (insert "To: " (substring (concat (dolist (elt (mu4e-message-field mimelook/mu4e-parent-message :to) value)
+    ;; 					(setq value (concat value (car elt) "; "))))
+    ;; 			      0 -2))
+
+    ;; test: same as above - TODO: CC field does not contain my own email addres??
+    (let ((tmp ""))
+      (when (> (length (mu4e-message-field mimelook/mu4e-parent-message :cc)) 0)
+	(newline)
+	(princ (mu4e-message-field mimelook/mu4e-parent-message :cc))
+	(message "\n")
+	(insert "Cc: " (substring (concat (dolist (element (mu4e-message-field mimelook/mu4e-parent-message :cc) tmp)
+					    (princ element)
+					    (if (car element)
+						(setq tmp (concat tmp (car element) "; "))
+					      (if (cdr element)
+						  (setq tmp (concat tmp (cdr element) "; "))
+						(error "'Cc' field contains nil/nil")))))
+				  0 -2))))
+
+    ;; (when (> (length (mu4e-message-field mimelook/mu4e-parent-message :cc)) 0)
+    ;;   (newline)
+    ;;   (setq value "")
+    ;;   (insert "Cc: " (substring (concat (dolist (elt (mu4e-message-field mimelook/mu4e-parent-message :cc) value)
+    ;; 					  (setq value (concat value (car elt) "; "))))
+    ;; 				0 -2)))
+
     (newline)
     (insert "Subject: " (mail-header-subject message-reply-headers))
     (newline)(newline)(newline)))

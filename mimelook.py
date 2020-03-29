@@ -115,13 +115,30 @@ def format_outlook_reply(message, htmltoinsert):
 
     # grab header info
     message_from = message.headers["From"]
+    if message_from is not None:
+        message_from = message_from.replace(">", "&gt;").replace("<", "&lt;")
     message_to = message.headers["To"] if "To" in message.headers else None
+    if message_to is not None:
+        message_to = message_to.replace(">", "&gt;").replace("<", "&lt;")
     message_subject = message.headers["Subject"]
     message_date = message.date.strftime("%d %B %Y %H:%M:%S")
     message_cc = message.headers["CC"] if "CC" in message.headers else None
+    if message_cc is not None:
+        message_cc = message_cc.replace(">", "&gt;").replace("<", "&lt;")
 
     outlook_madness = format_insane_outlook_header(message_from, message_date,
                                                    message_to, message_cc, message_subject)
+
+    # Fix outlook sometimes removing all margin from paragraphs
+    # margin-top: initial for some reason does not seem to work, but 16px is default in Chrome
+    extracss = "#mu4e p {margin-top:16px; margin-bottom:16px;}"
+
+    # m = re.search("</head>", message_html)
+    # assert m is not None, "No head end tag found in parent HTML"
+    # message_html = "{}\n{}\n{}\n{}".format(message_html[:m.start()],
+    #                                        "<style type=\"text/css\">{}</style>".format(extracss),
+    #                                        "</head>",
+    #                                        message_html[m.end():])
 
     # find body tag in html
     m = re.search("<body.*?>", message_html)
@@ -249,6 +266,7 @@ def plain2fancy(plaintext, msgid):
     # plaintext is converted to html, supporting markdown syntax
     # loosely inspired by http://webcache.googleusercontent.com/search?q=cache:R1RQkhWqwEgJ:tess.oconnor.cx/2008/01/html-email-composition-in-emacs
     text2html = markdown.markdown(escaped_plaintext)
+    text2html = "<div id=\"mu4e\">{}</div>".format(text2html)
 
     # get message from message id
     # print(msgid)
